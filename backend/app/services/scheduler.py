@@ -39,6 +39,7 @@ def generate_procrastination_schedule(tasks: List[Task]) -> List[ScheduleItem]:
                 length=task.length,
                 location=task.location,
                 intensity=task.intensity,
+                flexible=task.flexible,
                 order=len(scheduled) + 1,
                 start=start_dt.strftime("%H:%M"),
                 end=end_dt.strftime("%H:%M")
