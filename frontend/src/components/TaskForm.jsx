@@ -1,12 +1,13 @@
 // src/components/TaskForm.jsx
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function TaskForm({ onSubmit }) {
   const [tasks, setTasks] = useState([])
   const [newTask, setNewTask] = useState({
     name: '',
     start: '',
-    length: '1.0',       // now a string
+    length: '1.0',
     location: '',
     intensity: 'Medium',
     flexible: false,
@@ -28,11 +29,9 @@ export default function TaskForm({ onSubmit }) {
 
   const add = e => {
     e.preventDefault()
-    // basic required checks
     if (!newTask.name) return
     if (!newTask.flexible && !newTask.start) return
 
-    // validate length is decimal
     const decPattern = /^\d+(\.\d+)?$/
     if (!decPattern.test(newTask.length)) {
       alert('Please enter a valid decimal number for length.')
@@ -44,12 +43,7 @@ export default function TaskForm({ onSubmit }) {
       return
     }
 
-    // assemble task with numeric length
-    const taskToAdd = {
-      ...newTask,
-      length: lengthVal,
-    }
-
+    const taskToAdd = { ...newTask, length: lengthVal }
     setTasks(ts => [...ts, taskToAdd])
     setNewTask({
       name: '',
@@ -67,8 +61,8 @@ export default function TaskForm({ onSubmit }) {
   return (
     <div className="space-y-8">
       <form onSubmit={add} className="space-y-4">
-        {/* Task Name */}
-        <div>
+         {/* Task Name */}
+         <div>
           <label className="block text-sm font-medium">Task</label>
           <input
             type="text"
@@ -152,55 +146,84 @@ export default function TaskForm({ onSubmit }) {
             </select>
           </div>
         )}
-
-        <button
+        
+        <motion.button
           type="submit"
-          className="w-full py-2 bg-gray-100 hover:bg-gray-200 rounded font-semibold"
+          className="w-full py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded font-semibold"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
         >
           + Add Task
-        </button>
+        </motion.button>
       </form>
 
-      {/* Task List */}
       <div>
         <h3 className="text-xl font-semibold mb-3">Your Tasks</h3>
-        {tasks.length === 0 ? (
-          <p className="text-gray-500 italic">No tasks added yet.</p>
-        ) : (
-          <ul className="space-y-2 mb-4">
-            {tasks.map((t, i) => (
-              <li
-                key={i}
-                className="flex justify-between items-center border rounded px-4 py-3 bg-white"
-              >
-                <div className="space-y-1">
-                  <div className="font-medium">{t.name}</div>
-                  <div className="text-sm text-gray-600">
-                    {!t.flexible && `${t.start} • `}
-                    {t.length.toFixed(1)}h • {t.location} {t.flexible && (`• ${t.intensity}`)}
-                    {!t.flexible && (
-                      <span className="ml-2 text-red-500 font-semibold">
-                        Fixed
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => remove(i)}
-                  className="text-red-500 hover:underline text-sm"
+        <AnimatePresence>
+          {tasks.length === 0 ? (
+            <motion.p
+              className="text-gray-500 italic"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              No tasks added yet.
+            </motion.p>
+          ) : (
+            <motion.ul
+              className="space-y-2 mb-4"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.1 } }
+              }}
+            >
+              {tasks.map((t, i) => (
+                <motion.li
+                  key={i}
+                  className="flex justify-between items-center border rounded px-4 py-3 bg-white"
+                  variants={{
+                    hidden: { opacity: 0, x: -20 },
+                    visible: { opacity: 1, x: 0 }
+                  }}
+                  exit={{ opacity: 0, x: 20 }}
+                  whileHover={{ scale: 1.02 }}
                 >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <button
+                  <div className="space-y-1">
+                    <div className="font-medium">{t.name}</div>
+                    <div className="text-sm text-gray-600">
+                      {!t.flexible && `${t.start} • `}
+                      {t.length.toFixed(1)}h • {t.location}
+                      {t.flexible && ` • ${t.intensity}`}
+                      {!t.flexible && (
+                        <span className="ml-2 text-red-500 font-semibold">
+                          Fixed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <motion.button
+                    onClick={() => remove(i)}
+                    className="text-red-500 hover:underline text-sm"
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    Remove
+                  </motion.button>
+                </motion.li>
+              ))}
+            </motion.ul>
+          )}
+        </AnimatePresence>
+
+        <motion.button
           onClick={schedule}
-          className="w-full py-2 bg-primary-color text-white rounded font-semibold"
+          className="w-full py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded font-semibold"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
         >
           Go
-        </button>
+        </motion.button>
       </div>
     </div>
   )
