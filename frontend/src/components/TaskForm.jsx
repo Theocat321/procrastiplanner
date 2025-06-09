@@ -1,12 +1,12 @@
+// src/components/TaskForm.jsx
 import { useState } from 'react'
 
-export default function TaskForm() {
+export default function TaskForm({ onSubmit }) {
   const [tasks, setTasks] = useState([])
   const [newTask, setNewTask] = useState({ name: '', time: 1.0, location: '' })
 
   const handleChange = (field, value) => {
     if (field === 'time') {
-      // allow decimals, enforce minimum of 0.1
       const v = parseFloat(value)
       setNewTask(prev => ({
         ...prev,
@@ -26,6 +26,11 @@ export default function TaskForm() {
 
   const handleRemove = idx => {
     setTasks(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const handleSchedule = () => {
+    if (tasks.length === 0) return
+    onSubmit(tasks)
   }
 
   return (
@@ -69,18 +74,18 @@ export default function TaskForm() {
         </div>
         <button
           type="submit"
-          className="px-4 py-2 bg-primary-color text-white rounded"
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded"
         >
-          Add Task
+          + Add Task
         </button>
       </form>
 
       <div>
         <h2 className="text-lg font-semibold mb-2">Your Tasks</h2>
         {tasks.length === 0 && (
-          <p className="text-gray-500">No tasks added yet.</p>
+          <p className="text-gray-500 italic">No tasks added yet.</p>
         )}
-        <ul className="space-y-2">
+        <ul className="space-y-2 mb-4">
           {tasks.map((t, i) => (
             <li
               key={i}
@@ -89,7 +94,7 @@ export default function TaskForm() {
               <div>
                 <div className="font-medium">{t.name}</div>
                 <div className="text-sm text-gray-600">
-                  {t.time.toFixed(1)}h &middot; {t.location}
+                  {t.time.toFixed(1)}h · {t.location}
                 </div>
               </div>
               <button
@@ -101,7 +106,14 @@ export default function TaskForm() {
             </li>
           ))}
         </ul>
+
+        <button
+          onClick={handleSchedule}
+          className="w-full px-4 py-2 bg-primary-color text-white font-semibold rounded"
+        >
+          Go
+        </button>
       </div>
     </div>
-  )
+)
 }

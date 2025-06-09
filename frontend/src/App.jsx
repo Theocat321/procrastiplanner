@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
-// import Schedule from './pages/Schedule'
 import './index.css'
 
 export default function App() {
@@ -15,10 +14,6 @@ export default function App() {
             path="/"
             element={<Home setSchedule={setSchedule} />}
           />
-          {/* <Route
-            path="/schedule"
-            element={<Schedule schedule={schedule} />}
-          /> */}
         </Routes>
       </div>
     </BrowserRouter>

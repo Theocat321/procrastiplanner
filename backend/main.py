@@ -1,27 +1,15 @@
-''''''
-import sys
-import os
-import numpy as np
-
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from app.routers import schedule
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+app = FastAPI(
+    title="Procrastiplanner API",
+    version="0.1.0",
+    description="Creates an intentionally awful schedule to help you procrastinate."
 )
 
-@app.get("/api/hey")
-async def  temp():
-    '''
-    Temporary endpoint for testing purposes.
-    Returns a simple JSON response.    
-    '''
-    return {"status":"okay"}
+# include our schedule router
+app.include_router(schedule.router)
+
+@app.get("/", include_in_schema=False)
+async def healthcheck():
+    return {"status": "ok"}
