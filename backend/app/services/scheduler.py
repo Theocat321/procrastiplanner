@@ -1,76 +1,103 @@
 # app/services/scheduler.py
 from typing import List
-from datetime import datetime, timedelta
+from datetime import datetime, date, time, timedelta
 from app.models import Task, ScheduleItem
 
 DAY_START_HOUR = 9
 
 def generate_procrastination_schedule(tasks: List[Task]) -> List[ScheduleItem]:
     """
-    Reverse-input “procrastination” schedule, preserving intensity,
-    and computing start/end times from 09:00 onward.
+    Build a “procrastination” schedule for tomorrow starting at 09:00,
+    placing fixed tasks at their given times and filling remaining gaps
+    with flexible tasks in input order. Flexible tasks may be split
+    if they don't fit entirely in a given gap.
     """
 
-    fixed_tasks = sorted(
-    [task for task in tasks if task.flexible and task.start],  # Ensure `start` is not empty
-    key=lambda t: datetime.strptime(t.start, "%H:%M")  # Parse `start` as datetime
-    )
-    flexible_tasks = [task for task in tasks if not task.flexible]
-    # 9am tomorrow
-    current_time = (datetime.now() + timedelta(days=1)).replace(hour=DAY_START_HOUR, minute=0, second=0, microsecond=0)
-    scheduled = []
+    # Split tasks
+    fixed_tasks = [t for t in tasks if not t.flexible and t.start]
+    flexible_tasks = [t for t in tasks if t.flexible]
 
-    for task in flexible_tasks:
-        while task.length > 0:  # Handle interruptions for long flexible tasks
-            # Check if fixed task interrupts current flexible task
-            if fixed_tasks and fixed_tasks[0].start:  # Ensure `start` is not empty
-                fixed_task_start = datetime.strptime(fixed_tasks[0].start, "%H:%M")
-                if current_time >= fixed_task_start:
-                    fixed_task = fixed_tasks.pop(0)
-                    scheduled.append(ScheduleItem(
-                        name=fixed_task.name,
-                        length=fixed_task.length,
-                        location=fixed_task.location,
-                        intensity=fixed_task.intensity,
-                        flexible=fixed_task.flexible,
-                        order=len(scheduled) + 1,
-                        start=fixed_task.start,  # Keep as string for ScheduleItem
-                        end=(fixed_task_start + timedelta(hours=fixed_task.length)).strftime("%H:%M")
-                    ))
-                    current_time = fixed_task_start + timedelta(hours=fixed_task.length)
-                else:
-                    # Schedule part of flexible task until the next interruption
-                    end_time = min(
-                        current_time + timedelta(hours=task.length),
-                        fixed_task_start if fixed_tasks else current_time + timedelta(hours=task.length)
-                    )
-                    duration = (end_time - current_time).total_seconds() / 3600
-                    scheduled.append(ScheduleItem(
-                        name=task.name,
-                        length=duration,
-                        location=task.location,
-                        intensity=task.intensity,
-                        flexible=task.flexible,
-                        order=len(scheduled) + 1,
-                        start=current_time.strftime("%H:%M"),
-                        end=end_time.strftime("%H:%M")
-                    ))
-                    task.length -= duration  # Reduce remaining length of flexible task
-                    current_time = end_time
+    # Determine tomorrow's date
+    tomorrow = (datetime.now() + timedelta(days=1)).date()
 
-    # Schedule remaining fixed tasks
-    for task in fixed_tasks:
-        if task.start:  # Ensure `start` is not empty
-            fixed_task_start = datetime.strptime(task.start, "%H:%M")
-            scheduled.append(ScheduleItem(
+    # Parse fixed task start datetimes and sort
+    fixed_schedule = []
+    for t in fixed_tasks:
+        h, m = map(int, t.start.split(':'))
+        dt_start = datetime.combine(tomorrow, time(hour=h, minute=m))
+        dt_end = dt_start + timedelta(hours=t.length)
+        fixed_schedule.append((dt_start, dt_end, t))
+    fixed_schedule.sort(key=lambda x: x[0])
+
+    scheduled: List[ScheduleItem] = []
+    order = 1
+
+    # Initialize current pointer at tomorrow 09:00
+    current = datetime.combine(tomorrow, time(hour=DAY_START_HOUR))
+
+    # Helper to schedule a block
+    def _push(name, length_h, location, intensity, flexible, dt_start):
+        nonlocal order
+        dt_end = dt_start + timedelta(hours=length_h)
+        scheduled.append(ScheduleItem(
+            name=name,
+            length=length_h,
+            location=location,
+            intensity=intensity,
+            flexible=flexible,
+            order=order,
+            start=dt_start.strftime("%H:%M"),
+            end=dt_end.strftime("%H:%M")
+        ))
+        order += 1
+        return dt_end
+
+    # Step through fixed tasks, filling gaps with flexible
+    for dt_fixed_start, dt_fixed_end, ft in fixed_schedule:
+        # Fill gap [current, dt_fixed_start)
+        while flexible_tasks and current < dt_fixed_start:
+            task = flexible_tasks.pop(0)
+            remaining = task.length
+            gap = (dt_fixed_start - current).total_seconds() / 3600.0
+            take = min(remaining, gap)
+            current = _push(
                 name=task.name,
-                length=task.length,
+                length_h=take,
                 location=task.location,
                 intensity=task.intensity,
                 flexible=task.flexible,
-                order=len(scheduled) + 1,
-                start=task.start,
-                end=(fixed_task_start + timedelta(hours=task.length)).strftime("%H:%M")
-            ))
+                dt_start=current
+            )
+            if remaining > take:
+                # put back the leftover portion
+                task.length = remaining - take
+                flexible_tasks.insert(0, task)
+            # if we exactly hit fixed start, break to schedule fixed
+            if abs((dt_fixed_start - current).total_seconds()) < 1:
+                break
+
+        # Schedule the fixed task
+        current = _push(
+            name=ft.name,
+            length_h=ft.length,
+            location=ft.location,
+            intensity=ft.intensity,
+            flexible=ft.flexible,
+            dt_start=dt_fixed_start
+        )
+        # advance current past fixed task
+        current = dt_fixed_end
+
+    # After all fixed, schedule remaining flexible tasks consecutively
+    while flexible_tasks:
+        task = flexible_tasks.pop(0)
+        current = _push(
+            name=task.name,
+            length_h=task.length,
+            location=task.location,
+            intensity=task.intensity,
+            flexible=task.flexible,
+            dt_start=current
+        )
 
     return scheduled
