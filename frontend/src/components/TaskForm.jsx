@@ -6,7 +6,7 @@ export default function TaskForm({ onSubmit }) {
   const [newTask, setNewTask] = useState({
     name: '',
     start: '',
-    length: 1.0,
+    length: '1.0',       // now a string
     location: '',
     intensity: 'Medium',
     flexible: false,
@@ -23,33 +23,38 @@ export default function TaskForm({ onSubmit }) {
   }, [newTask.flexible])
 
   const change = (field, val) => {
-    if (field === 'length') {
-      const v = parseFloat(val)
-      return setNewTask(t => ({
-        ...t,
-        length: isNaN(v) ? 0.1 : Math.max(0.1, v)
-      }))
-    }
-    if (field === 'flexible') {
-      return setNewTask(t => ({
-        ...t,
-        flexible: val,
-        start: val ? '' : t.start,
-      }))
-    }
     setNewTask(t => ({ ...t, [field]: val }))
   }
 
   const add = e => {
     e.preventDefault()
+    // basic required checks
     if (!newTask.name) return
-    if (!newTask.flexible && !newTask.start) return  // require start if not flexible
-    // length is always required (the input is always present and min=0.1)
-    setTasks(ts => [...ts, newTask])
+    if (!newTask.flexible && !newTask.start) return
+
+    // validate length is decimal
+    const decPattern = /^\d+(\.\d+)?$/
+    if (!decPattern.test(newTask.length)) {
+      alert('Please enter a valid decimal number for length.')
+      return
+    }
+    const lengthVal = parseFloat(newTask.length)
+    if (isNaN(lengthVal) || lengthVal < 0.1) {
+      alert('Length must be at least 0.1 hours.')
+      return
+    }
+
+    // assemble task with numeric length
+    const taskToAdd = {
+      ...newTask,
+      length: lengthVal,
+    }
+
+    setTasks(ts => [...ts, taskToAdd])
     setNewTask({
       name: '',
       start: '',
-      length: 1.0,
+      length: '1.0',
       location: '',
       intensity: 'Medium',
       flexible: false,
@@ -105,25 +110,19 @@ export default function TaskForm({ onSubmit }) {
           </div>
         )}
 
-        {/* Length (always shown) */}
+        {/* Length (free-form decimal) */}
         <div>
           <label className="block text-sm font-medium">
             Length (hours) <span className="text-red-500">*</span>
           </label>
-          <div className="flex items-center">
-            <input
-              type="number"
-              step="0.1"
-              min="0.1"
-              required
-              className="mt-1 w-24 border rounded-l px-3 py-2"
-              value={newTask.length}
-              onChange={e => change('length', e.target.value)}
-            />
-            <span className="border-t border-b border-r rounded-r px-2 py-1 bg-gray-100">
-              h
-            </span>
-          </div>
+          <input
+            type="text"
+            required
+            className="mt-1 w-full border rounded px-3 py-2"
+            value={newTask.length}
+            onChange={e => change('length', e.target.value)}
+            placeholder="e.g. 1.5"
+          />
         </div>
 
         {/* Location */}
@@ -178,7 +177,7 @@ export default function TaskForm({ onSubmit }) {
                   <div className="font-medium">{t.name}</div>
                   <div className="text-sm text-gray-600">
                     {!t.flexible && `${t.start} • `}
-                    {t.length.toFixed(1)}h • {t.location} • {t.intensity}
+                    {t.length.toFixed(1)}h • {t.location} {t.flexible && (`• ${t.intensity}`)}
                     {!t.flexible && (
                       <span className="ml-2 text-red-500 font-semibold">
                         Fixed

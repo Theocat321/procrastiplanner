@@ -17,15 +17,13 @@ export default function Home() {
     setSchedule(Array.isArray(data.schedule) ? data.schedule : [])
   }
 
-  const formFlex = schedule.length ? 'basis-1/2' : 'basis-full'
-
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex w-full  bg-gray-50">
       <motion.div
-        className={`${formFlex} p-8 bg-white shadow-lg`}
-        initial={{ flexBasis: '100%' }}
-        animate={{ flexBasis: formFlex === 'basis-full' ? '100%' : '50%' }}
-        transition={{ duration: 0.6, ease: 'easeInOut' }}
+        className="w-full p-8 bg-white shadow-lg"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
       >
         <h2 className="text-3xl font-extrabold mb-6">Enter Your Tasks</h2>
         <TaskForm onSubmit={handleSubmit} />
@@ -34,11 +32,11 @@ export default function Home() {
       <AnimatePresence>
         {schedule.length > 0 && (
           <motion.div
-            className="basis-1/2 p-8 overflow-y-auto"
+            className="w-full p-8 overflow-y-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
           >
             <h2 className="text-3xl font-extrabold mb-6">
               Your Least‐Optimal Schedule
