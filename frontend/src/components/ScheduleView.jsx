@@ -34,14 +34,16 @@ export default function ScheduleView({ schedule }) {
               <div className="flex items-baseline space-x-2">
                 <span className="text-lg font-semibold">{item.name}</span>
                 <span className="text-sm text-gray-500">
-                  {item.start}–{item.end}
+                  {!item.flexible && `${item.start} •`} {item.length.toFixed(1)}h
                 </span>
               </div>
               <div className="text-sm text-gray-600 mt-1">
-                {item.time.toFixed(1)}h · {item.location} · {item.intensity}
+                {item.location} • {item.intensity}
               </div>
             </div>
-            <div className="text-2xl font-bold text-gray-300">{item.order}</div>
+            <div className="text-2xl font-bold text-gray-300">
+              {item.order}
+            </div>
           </motion.li>
         ))}
       </motion.ul>
