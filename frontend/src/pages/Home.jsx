@@ -17,6 +17,14 @@ export default function Home() {
     setSchedule(Array.isArray(data.schedule) ? data.schedule : [])
   }
 
+  const handleEventUpdate = (idx, newStart, newEnd) => {
+    setSchedule(s =>
+      s.map((ev, i) =>
+        i === idx ? { ...ev, start: newStart, end: newEnd } : ev
+      )
+    )
+  }
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-blue-50 to-purple-100 text-gray-900 overflow-x-hidden">
       {/* Hero Section */}
@@ -92,7 +100,7 @@ export default function Home() {
                 <h2 className="text-3xl font-extrabold mb-6">
                   Your Least‐Optimal Schedule
                 </h2>
-                <ScheduleView schedule={schedule} />
+                <ScheduleView schedule={schedule} onEventUpdate={handleEventUpdate}/>
               </motion.div>
             )}
           </AnimatePresence>
