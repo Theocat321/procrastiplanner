@@ -1,42 +1,47 @@
 # app/models.py
-from pydantic import BaseModel, Field, root_validator
-from typing import List, Optional
 from enum import Enum
-import re
+from typing import List, Optional
+from pydantic import BaseModel, Field, model_validator
+
 
 class Intensity(str, Enum):
-    Light = "Light"
+    Light  = "Light"
     Medium = "Medium"
-    Deep = "Deep"
+    Deep   = "Deep"
+
 
 class Task(BaseModel):
     name: str
-    start: Optional[str] = Field(None, description="HH:MM only if not flexible")
     length: float = Field(..., gt=0, description="Duration in hours")
     location: str
     intensity: Intensity
-    flexible: bool = Field(False)
+    flexible: bool
+    start: Optional[str] = Field(
+        None,
+        description="Required if `flexible` is false, format HH:MM"
+    )
 
-    def check_fixed_start(cls, values):
-        flexible = values.get("flexible")
-        start = values.get("start")
-        if not flexible:
-            if not start or not re.match(r"^\d{2}:\d{2}$", start):
-                raise ValueError("Fixed tasks must include start in HH:MM")
-        return values
+    @model_validator(mode="after")
+    def require_start_if_fixed(cls, model):
+        if not model.flexible and not model.start:
+            raise ValueError("Fixed tasks must include `start` in HH:MM")
+        return model
+
 
 class ScheduleItem(BaseModel):
     name: str
-    start: str    # actual scheduled start HH:MM
-    end: str      # scheduled end HH:MM
+    start: str    # HH:MM
+    end:   str    # HH:MM
     length: float
     location: str
     intensity: Intensity
     flexible: bool
-    order: int
+    order:    int
+
 
 class ScheduleRequest(BaseModel):
     tasks: List[Task]
+
 
 class ScheduleResponse(BaseModel):
     schedule: List[ScheduleItem]

@@ -3,18 +3,48 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import TaskForm from '../components/TaskForm'
 import ScheduleView from '../components/ScheduleView'
+import subwayGif from '../assets/gif/subway.gif'
+
+function LoadingScreen() {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+      <div className="text-center text-white">
+        {/* Centered subway.gif */}
+        <img
+          src={subwayGif}
+          alt="Loading..."
+          className="mx-auto mb-6 rounded-md"
+        />
+        {/* Pulsing text */}
+        <motion.h1
+          className="text-5xl font-black"
+          animate={{ scale: [1, 1.01, 1] }}
+          transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+        >
+          Loading your procrastination plan…
+        </motion.h1>
+      </div>
+    </div>
+  )
+}
 
 export default function Home() {
   const [schedule, setSchedule] = useState([])
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async tasks => {
-    const res = await fetch('http://localhost:8000/schedule/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tasks }),
-    })
-    const data = await res.json()
-    setSchedule(Array.isArray(data.schedule) ? data.schedule : [])
+    setLoading(true)
+    try {
+      const res = await fetch('http://localhost:8000/schedule/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tasks }),
+      })
+      const data = await res.json()
+      setSchedule(Array.isArray(data.schedule) ? data.schedule : [])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleEventUpdate = (idx, newStart, newEnd) => {
@@ -26,9 +56,11 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-blue-50 to-purple-100 text-gray-900 overflow-x-hidden">
+    <div className="relative min-h-screen w-full bg-gradient-to-b from-blue-50 to-purple-100 text-gray-900 overflow-x-hidden">
+      {loading && <LoadingScreen />}
+
       {/* Hero Section */}
-      <section className="py-24 text-center relative overflow-hidden">
+      <section className="py-32 text-center relative overflow-hidden">
         <motion.h1
           className="text-6xl font-black tracking-tight z-10 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -37,7 +69,6 @@ export default function Home() {
         >
           Procrastiplanner
         </motion.h1>
-
         <motion.p
           className="text-xl max-w-2xl mx-auto text-gray-700 z-10"
           initial={{ opacity: 0, y: 20 }}
@@ -46,22 +77,18 @@ export default function Home() {
         >
           A beautifully structured way to get <em>everything</em> done — just not the things you should.
         </motion.p>
-        {/* Floating emoji chaos */}
-        <div className="absolute  inset-0 pointer-events-none z-0">
-          {['🧠', '⏰', '💡', '📅', '🚀', '😅', '🎯'].map((emoji, i) => (
+        <div className="absolute inset-0 pointer-events-none z-0">
+          {['🧠','⏰','💡','📅','🚀','😅','🎯'].map((emoji, i) => (
             <motion.span
               key={i}
               className="absolute text-2xl"
               style={{
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
+                top: `${Math.random()*100}%`,
+                left: `${Math.random()*100}%`,
               }}
-              animate={{
-                y: [0, -20, 0],
-                opacity: [0.2, 1, 0.2],
-              }}
+              animate={{ y: [0, -20, 0], opacity: [0.2,1,0.2] }}
               transition={{
-                duration: 4 + Math.random() * 4,
+                duration: 4 + Math.random()*4,
                 repeat: Infinity,
                 ease: 'easeInOut',
                 delay: Math.random(),
@@ -88,7 +115,7 @@ export default function Home() {
           </motion.div>
 
           <AnimatePresence>
-            {schedule.length > 0 && (
+            {schedule.length > 0 && !loading && (
               <motion.div
                 className="flex-1 bg-white rounded-2xl shadow-xl p-8 overflow-y-auto"
                 initial={{ opacity: 0, x: 50 }}
