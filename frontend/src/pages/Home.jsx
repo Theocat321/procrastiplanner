@@ -168,11 +168,11 @@ export default function Home() {
           >
             <h3 className="text-3xl font-bold">Key Features</h3>
             <ul className="flex flex-wrap justify-center gap-6">
-              {['Animated UI', 'Infinite Emojis', 'Drag-to-Rearrange', 'API-First', 'Light & Dark Modes', 'Endless Fun']
+              {['Drag-to-Rearrange', 'AI Driven', 'Productive Procrastination', 'Endless Fun']
                 .map((feat, i) => (
                   <motion.li
                     key={i}
-                    className="bg-purple-100 px-4 py-2 rounded-full font-medium"
+                    className="bg-purple-100 px-4 py-2 rounded-full font-medium cursor-pointer"
                     whileHover={{ scale: 1.1 }}
                     transition={{ type: 'spring', stiffness: 200 }}
                   >

@@ -14,6 +14,28 @@ export default function ScheduleView({ schedule }) {
     return h * 60 + m
   }
 
+  const addAllToGoogle = () => {
+    // use today's date as prefix
+    const datePrefix = new Date().toISOString().split('T')[0].replace(/-/g, '')
+    schedule.forEach(item => {
+      const start = `${datePrefix}T${item.start.replace(':', '')}00Z`
+      const end = `${datePrefix}T${item.end.replace(':', '')}00Z`
+      const params = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: item.name,
+        dates: `${start}/${end}`,
+        details: item.flexible
+          ? `${item.length.toFixed(1)}h • ${item.intensity}`
+          : '',
+        location: item.location || '',
+      })
+      window.open(
+        `https://calendar.google.com/calendar/render?${params.toString()}`,
+        '_blank'
+      )
+    })
+  }
+
   return (
     <motion.div
       className="relative w-full overflow-hidden bg-white text-black border rounded-lg"
@@ -21,6 +43,15 @@ export default function ScheduleView({ schedule }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
+      <div className="flex justify-end p-4">
+        <button
+          onClick={addAllToGoogle}
+          className="px-4 py-2 bg-primary-color text-white rounded hover:bg-blue-700 transition"
+        >
+          Add All to Google Calendar
+        </button>
+      </div>
+
       <div className="relative" style={{ height: CONTAINER_HEIGHT }}>
         {Array.from({ length: VISIBLE_HOURS + 1 }).map((_, i) => {
           const hour = DAY_START + i
