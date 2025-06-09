@@ -2,11 +2,94 @@
 import React, { useState } from 'react'
 import { motion, useMotionValue } from 'framer-motion'
 
+function EventBlock({
+  item, idx, start, end, assignment,
+  topPx, heightPx, DAY_START, DAY_END,
+  ROW_HEIGHT, ROWS, formatTime,
+  onEventUpdate, activeId, setActiveId
+}) {
+  const duration = end - start
+  const { col, cols } = assignment
+  const leftPct  = (col / cols) * 100
+  const widthPct = (1   / cols) * 100
+
+  // motion value for live snapping
+  const y = useMotionValue(0)
+  const handleDrag = (_, info) => {
+    const snapped = Math.round(info.offset.y / ROW_HEIGHT) * ROW_HEIGHT
+    y.set(snapped)
+  }
+  const handleDragEnd = () => {
+    const snappedPx = y.get()
+    const deltaRows = snappedPx / ROW_HEIGHT
+    const movedMins = deltaRows * 15
+    const dayMin = DAY_START * 60
+    const dayMax = DAY_END   * 60 - duration
+    let newStart = start + movedMins
+    newStart = Math.max(dayMin, Math.min(newStart, dayMax))
+    const newEnd = newStart + duration
+    y.set(0)
+    onEventUpdate(idx, formatTime(newStart), formatTime(newEnd))
+  }
+
+  return (
+    <motion.div
+      drag="y"
+      dragMomentum={false}
+      dragElastic={0}
+      dragConstraints={{
+        top:    -topPx,
+        bottom: ROWS * ROW_HEIGHT - topPx - heightPx
+      }}
+      onDrag={handleDrag}
+      onDragEnd={handleDragEnd}
+      onClick={() => setActiveId(activeId === idx ? null : idx)}
+      style={{
+        position: 'absolute',
+        top:      topPx,
+        left:     `${leftPct}%`,
+        width:    `${widthPct}%`,
+        height:   heightPx,
+        y,
+        zIndex:   activeId === idx ? 10 : 1
+      }}
+      className="rounded-lg bg-gradient-to-r from-blue-300 to-blue-400 p-2 shadow-lg cursor-pointer overflow-visible"
+    >
+      <div className="text-sm font-semibold">{item.name}</div>
+      <div className="text-xs text-gray-700">
+        {item.start} – {item.end}
+      </div>
+
+      {activeId === idx && (
+        <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border rounded-lg shadow-lg p-3 text-sm">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-bold">
+              {item.name}{!item.flexible && ' 📌'}
+            </span>
+            <button
+              onClick={e => { e.stopPropagation(); setActiveId(null) }}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ×
+            </button>
+          </div>
+          <div className="text-gray-600 mb-1">
+            {item.start} – {item.end}
+          </div>
+          <div className="text-gray-600">
+            {item.location || <em>No location</em>}
+          </div>
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
 export default function ScheduleView({ schedule, onEventUpdate }) {
   const [activeId, setActiveId] = useState(null)
-  const DAY_START  = 8    // 08:00
-  const DAY_END    = 22   // 22:00
-  const ROW_HEIGHT = 15   // px per 15 minutes
+  const DAY_START  = 8
+  const DAY_END    = 22
+  const ROW_HEIGHT = 15
   const ROWS       = (DAY_END - DAY_START) * 4
 
   const parseTime = timeStr => {
@@ -19,7 +102,6 @@ export default function ScheduleView({ schedule, onEventUpdate }) {
     return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
   }
 
-  // Build local YYYYMMDD prefix + open Google Calendar templates
   const addAllToGoogle = () => {
     const now = new Date()
     const pad = n => String(n).padStart(2,'0')
@@ -42,22 +124,25 @@ export default function ScheduleView({ schedule, onEventUpdate }) {
     })
   }
 
-  // Precompute minutes & overlap columns (same as before)…
-  const events = schedule.map((it,i)=>({
-    idx: i,
+  // compute minute ranges
+  const events = schedule.map((it, i) => ({
+    idx:   i,
     start: parseTime(it.start),
     end:   parseTime(it.end),
   }))
+
+  // build overlap clusters & column assignments
   const clusters = []
   const seen = new Set()
   for (let ev of events) {
     if (seen.has(ev.idx)) continue
-    const group = [ev]; seen.add(ev.idx)
-    for (let j=0; j<group.length; j++) {
+    const group = [ev]
+    seen.add(ev.idx)
+    for (let i = 0; i < group.length; i++) {
       for (let other of events) {
         if (!seen.has(other.idx)
-         && other.start < group[j].end
-         && other.end   > group[j].start) {
+         && other.start < group[i].end
+         && other.end   > group[i].start) {
           group.push(other)
           seen.add(other.idx)
         }
@@ -67,17 +152,17 @@ export default function ScheduleView({ schedule, onEventUpdate }) {
   }
   const assignments = {}
   clusters.forEach(cluster => {
-    cluster.sort((a,b)=>a.start-b.start)
-    let activeCol = []
+    cluster.sort((a,b) => a.start - b.start)
+    let active = []
     let totalCols = 0
     cluster.forEach(ev => {
-      activeCol = activeCol.filter(a=>a.end>ev.start)
-      const used = activeCol.map(a=>a.col)
+      active = active.filter(a => a.end > ev.start)
+      const usedCols = active.map(a => a.col)
       let col = 0
-      while (used.includes(col)) col++
-      totalCols = Math.max(totalCols, col+1)
+      while (usedCols.includes(col)) col++
+      totalCols = Math.max(totalCols, col + 1)
       assignments[ev.idx] = { col, cols: totalCols }
-      activeCol.push({ end: ev.end, col })
+      active.push({ end: ev.end, col })
     })
   })
 
@@ -93,7 +178,7 @@ export default function ScheduleView({ schedule, onEventUpdate }) {
         </button>
       </div>
 
-      {/* Time grid */}
+      {/* grid + events */}
       <div
         className="grid relative"
         style={{
@@ -101,7 +186,7 @@ export default function ScheduleView({ schedule, onEventUpdate }) {
           gridTemplateRows:   `repeat(${ROWS}, ${ROW_HEIGHT}px)`
         }}
       >
-        {/* Hour labels */}
+        {/* hour labels */}
         {Array.from({ length: DAY_END - DAY_START + 1 }).map((_, i) => {
           const hour = DAY_START + i
           const row  = i * 4 + 1
@@ -121,7 +206,7 @@ export default function ScheduleView({ schedule, onEventUpdate }) {
           )
         })}
 
-        {/* Events container */}
+        {/* events container */}
         <div
           style={{
             gridColumn: 2,
@@ -132,92 +217,29 @@ export default function ScheduleView({ schedule, onEventUpdate }) {
           }}
         >
           {schedule.map((item, idx) => {
-            const ev      = events.find(e=>e.idx===idx)
-            const start   = ev.start
-            const end     = ev.end
-            const duration = end - start
-            const topPx    = ((start - DAY_START*60)/15)*ROW_HEIGHT
-            const heightPx = (duration/15)*ROW_HEIGHT
-
-            const { col, cols } = assignments[idx]||{col:0,cols:1}
-            const leftPct  = (col/cols)*100
-            const widthPct = (1/cols)*100
-
-            // live‐snap y
-            const y = useMotionValue(0)
-            const handleDrag = (_, info) => {
-              const snapped = Math.round(info.offset.y / ROW_HEIGHT) * ROW_HEIGHT
-              y.set(snapped)
-            }
-
+            const ev = events.find(e => e.idx === idx)
+            const topPx    = ((ev.start - DAY_START*60) / 15) * ROW_HEIGHT
+            const heightPx = ((ev.end - ev.start) / 15) * ROW_HEIGHT
+            const assignment = assignments[idx] || { col: 0, cols: 1 }
             return (
-              <motion.div
+              <EventBlock
                 key={idx}
-                drag="y"
-                dragMomentum={false}
-                dragElastic={0}
-                dragConstraints={{
-                  top:    -topPx,
-                  bottom: ROWS*ROW_HEIGHT - topPx - heightPx
-                }}
-                onDrag={handleDrag}
-                onDragEnd={() => {
-                  const snappedPx = y.get()
-                  const deltaRows = snappedPx/ROW_HEIGHT
-                  const movedMins = deltaRows*15
-                  const dayMin = DAY_START*60
-                  const dayMax = DAY_END*60 - duration
-                  let newStart = start + movedMins
-                  newStart = Math.max(dayMin, Math.min(newStart, dayMax))
-                  y.set(0)
-                  onEventUpdate(
-                    idx,
-                    formatTime(newStart),
-                    formatTime(newStart+duration)
-                  )
-                }}
-                onClick={() => setActiveId(activeId===idx ? null : idx)}
-                style={{
-                  position: 'absolute',
-                  top:      topPx,
-                  left:     `${leftPct}%`,
-                  width:    `${widthPct}%`,
-                  height:   heightPx,
-                  y,
-                  zIndex:   activeId===idx ? 10 : 1
-                }}
-                className="rounded-lg bg-gradient-to-r from-blue-300 to-blue-400 p-2 shadow-lg cursor-pointer overflow-visible"
-              >
-                <div className="text-sm font-semibold">{item.name}</div>
-                <div className="text-xs text-gray-700">
-                  {item.start} – {item.end}
-                </div>
-
-                {/* Popup */}
-                {activeId===idx && (
-                  <div
-                    className="absolute bottom-full left-0 mb-2 w-48 bg-white border rounded-lg shadow-lg p-3 text-sm"
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-bold">
-                        {item.name}{!item.flexible && ' 📌'}
-                      </span>
-                      <button
-                        onClick={e=>{ e.stopPropagation(); setActiveId(null) }}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="text-gray-600 mb-1">
-                      {item.start} – {item.end}
-                    </div>
-                    <div className="text-gray-600">
-                      {item.location || <em>No location</em>}
-                    </div>
-                  </div>
-                )}
-              </motion.div>
+                item={item}
+                idx={idx}
+                start={ev.start}
+                end={ev.end}
+                assignment={assignment}
+                topPx={topPx}
+                heightPx={heightPx}
+                DAY_START={DAY_START}
+                DAY_END={DAY_END}
+                ROW_HEIGHT={ROW_HEIGHT}
+                ROWS={ROWS}
+                formatTime={formatTime}
+                onEventUpdate={onEventUpdate}
+                activeId={activeId}
+                setActiveId={setActiveId}
+              />
             )
           })}
         </div>
