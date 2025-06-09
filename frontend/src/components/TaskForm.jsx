@@ -197,7 +197,7 @@ export default function TaskForm({ onSubmit }) {
         )}
         <button
           onClick={schedule}
-          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold"
+          className="w-full py-2 bg-primary-color text-white rounded font-semibold"
         >
           Go
         </button>
