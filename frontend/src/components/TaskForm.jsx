@@ -3,7 +3,12 @@ import { useState } from 'react'
 
 export default function TaskForm({ onSubmit }) {
   const [tasks, setTasks] = useState([])
-  const [newTask, setNewTask] = useState({ name: '', time: 1.0, location: '' })
+  const [newTask, setNewTask] = useState({
+    name: '',
+    time: 1.0,
+    location: '',
+    intensity: 'Medium'
+  })
 
   const handleChange = (field, value) => {
     if (field === 'time') {
@@ -21,7 +26,7 @@ export default function TaskForm({ onSubmit }) {
     e.preventDefault()
     if (!newTask.name) return
     setTasks(prev => [...prev, newTask])
-    setNewTask({ name: '', time: 1.0, location: '' })
+    setNewTask({ name: '', time: 1.0, location: '', intensity: 'Medium' })
   }
 
   const handleRemove = idx => {
@@ -36,6 +41,7 @@ export default function TaskForm({ onSubmit }) {
   return (
     <div className="space-y-6">
       <form onSubmit={handleAdd} className="space-y-4">
+        {/* Task Name */}
         <div>
           <label className="block text-sm mb-1">Task</label>
           <input
@@ -46,6 +52,8 @@ export default function TaskForm({ onSubmit }) {
             placeholder="What to do?"
           />
         </div>
+
+        {/* Duration */}
         <div>
           <label className="block text-sm mb-1">Duration (hours)</label>
           <div className="flex items-center">
@@ -62,6 +70,8 @@ export default function TaskForm({ onSubmit }) {
             </span>
           </div>
         </div>
+
+        {/* Location */}
         <div>
           <label className="block text-sm mb-1">Location</label>
           <input
@@ -72,6 +82,21 @@ export default function TaskForm({ onSubmit }) {
             placeholder="e.g. Home"
           />
         </div>
+
+        {/* Intensity */}
+        <div>
+          <label className="block text-sm mb-1">Intensity</label>
+          <select
+            className="w-full border rounded px-2 py-1"
+            value={newTask.intensity}
+            onChange={e => handleChange('intensity', e.target.value)}
+          >
+            <option>Light</option>
+            <option>Medium</option>
+            <option>Deep</option>
+          </select>
+        </div>
+
         <button
           type="submit"
           className="px-4 py-2 bg-gray-200 text-gray-800 rounded"
@@ -94,7 +119,7 @@ export default function TaskForm({ onSubmit }) {
               <div>
                 <div className="font-medium">{t.name}</div>
                 <div className="text-sm text-gray-600">
-                  {t.time.toFixed(1)}h · {t.location}
+                  {t.time.toFixed(1)}h · {t.location} · {t.intensity}
                 </div>
               </div>
               <button
@@ -109,11 +134,11 @@ export default function TaskForm({ onSubmit }) {
 
         <button
           onClick={handleSchedule}
-          className="w-full px-4 py-2 bg-primary-color text-white font-semibold rounded"
+          className="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded"
         >
           Go
         </button>
       </div>
     </div>
-)
+  )
 }
