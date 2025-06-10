@@ -9,13 +9,11 @@ function LoadingScreen() {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
       <div className="text-center text-white">
-        {/* Centered subway.gif */}
         <img
           src={subwayGif}
           alt="Loading..."
           className="mx-auto mb-6 rounded-md"
         />
-        {/* Pulsing text */}
         <motion.h1
           className="text-5xl font-black"
           animate={{ scale: [1, 1.01, 1] }}
@@ -28,27 +26,52 @@ function LoadingScreen() {
   )
 }
 
-export default function Home() {
-  const [schedule, setSchedule] = useState([])
-  const [loading, setLoading] = useState(false)
+function ErrorPopup({ onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        className="bg-white p-6 rounded-lg shadow-lg text-center"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+      >
+        <p className="mb-4 font-semibold">Our AI is procrastinating…</p>
+        <button
+          onClick={onClose}
+          className="px-4 py-2 bg-primary-color text-white rounded hover:bg-blue-700"
+        >
+          Try Again
+        </button>
+      </motion.div>
+    </div>
+  )
+}
+
+export default function Home({ setSchedule }) {
+  const [schedule, _setSchedule] = useState([])
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState(false)
 
   const handleSubmit = async tasks => {
     setLoading(true)
+    setError(false)
     try {
       const res = await fetch('http://localhost:8000/schedule/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tasks }),
       })
+      if (!res.ok) throw new Error('API error')
       const data = await res.json()
-      setSchedule(Array.isArray(data.schedule) ? data.schedule : [])
+      _setSchedule(Array.isArray(data.schedule) ? data.schedule : [])
+    } catch {
+      setError(true)
     } finally {
       setLoading(false)
     }
   }
 
   const handleEventUpdate = (idx, newStart, newEnd) => {
-    setSchedule(s =>
+    _setSchedule(s =>
       s.map((ev, i) =>
         i === idx ? { ...ev, start: newStart, end: newEnd } : ev
       )
@@ -58,6 +81,9 @@ export default function Home() {
   return (
     <div className="relative min-h-screen w-full bg-gradient-to-b from-blue-50 to-purple-100 text-gray-900 overflow-x-hidden">
       {loading && <LoadingScreen />}
+      <AnimatePresence>
+        {error && <ErrorPopup onClose={() => setError(false)} />}
+      </AnimatePresence>
 
       {/* Hero Section */}
       <section className="py-32 text-center relative overflow-hidden">
@@ -115,7 +141,7 @@ export default function Home() {
           </motion.div>
 
           <AnimatePresence>
-            {schedule.length > 0 && !loading && (
+            {schedule.length > 0 && !loading && !error && (
               <motion.div
                 className="flex-1 bg-white rounded-2xl shadow-xl p-8 overflow-y-auto"
                 initial={{ opacity: 0, x: 50 }}
