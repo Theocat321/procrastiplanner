@@ -64,6 +64,8 @@ def schedule_with_chatgpt(tasks: List[Dict]) -> List[ScheduleItem]:
                 "and filling gaps with flexible tasks. Aim to maximize procrastination by introducing long breaks, "
                 "accounting for travel between events, and splitting tasks into smaller chunks as needed. "
                 "All events must fit within 09:00–22:00, and every task must appear."
+                 "accounting for travel between events, and splitting flexible tasks into smaller  "
+                "chunks as to waste the must time. All events MUST fit within 09:00–22:00, and every task must appear."
             ),
             "parameters": {
                 "type": "object",
